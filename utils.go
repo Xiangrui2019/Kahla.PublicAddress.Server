@@ -24,3 +24,7 @@ func fileExists(filename string) bool {
 	}
 	return !info.IsDir()
 }
+
+func ProcessMessage(message string) string {
+	return message
+}

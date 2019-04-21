@@ -2,71 +2,19 @@ package kahla
 
 import (
 	"Kahla.PublicAddress.Server/consts"
+	"Kahla.PublicAddress.Server/events"
 	"Kahla.PublicAddress.Server/models"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/websocket"
 	"time"
 )
+
 
 type WebSocket struct {
 	conn         *websocket.Conn
 	Event        chan interface{}
 	State        int
 	StateChanged chan int
-}
-
-type Event struct {
-	Type            int    `json:"type"`
-	TypeDescription string `json:"typeDescription"`
-}
-
-type InvalidEventTypeError struct {
-	EventType int
-}
-
-func (i *InvalidEventTypeError) Error() string {
-	return fmt.Sprintf("invalid event type: %d", i.EventType)
-}
-
-type NewMessageEvent struct {
-	Event
-	ConversationID int    `json:"conversationId"`
-	Sender         User   `json:"sender"`
-	Content        string `json:"content"`
-	AesKey         string `json:"aesKey"`
-	Muted          bool   `json:"muted"`
-	SentByMe       bool   `json:"sentByMe"`
-}
-
-type NewFriendRequestEvent struct {
-	Event
-	RequesterID string `json:"requesterId"`
-	Requester   User `json:"requester"`
-}
-
-type WereDeletedEvent struct {
-	Event
-	Trigger User `json:"trigger"`
-}
-
-type FriendAcceptedEvent struct {
-	Event
-	Target User `json:"target"`
-}
-
-type TimerUpdatedEvent struct {
-	ConversationID int `json:"conversationId"`
-	NewTimer       int `json:"newTimer"`
-	Event
-}
-
-func NewWebSocket() *WebSocket {
-	w := new(WebSocket)
-	w.Event = make(chan interface{}, 10)
-	w.StateChanged = make(chan int)
-	w.changeState(consts.WebSocketStateNew)
-	return w
 }
 
 func (w *WebSocket) changeState(state int) {
@@ -77,22 +25,24 @@ func (w *WebSocket) changeState(state int) {
 	}
 }
 
-// https://github.com/gorilla/websocket/blob/master/examples/echo/client.go
-// wss://stargate.aiursoft.com/Listen/Channel?Id=&Key=
-// You should get message from w.Event.
-// This is a synchronize call, it returns when connection closed.
+func NewWebSocket() *WebSocket {
+	w := new(WebSocket)
+	w.Event = make(chan interface{}, 10)
+	w.StateChanged = make(chan int)
+	w.changeState(consts.WebSocketStateNew)
+	return w
+}
+
 func (w *WebSocket) Connect(serverPath string, interrupt chan struct{}) error {
-	// Connect
 	var err error
 	w.conn, _, err = websocket.DefaultDialer.Dial(serverPath, nil)
 	if err != nil {
 		return err
 	}
-	// close connection when return
+
 	defer w.conn.Close()
 	w.changeState(consts.WebSocketStateConnected)
 
-	// Main message loop in another goroutine
 	done := make(chan struct{})
 	errChan := make(chan error)
 	go w.runReceiveMessage(done, errChan)
@@ -100,7 +50,6 @@ func (w *WebSocket) Connect(serverPath string, interrupt chan struct{}) error {
 	ticker := time.NewTicker(45 * time.Second)
 	defer ticker.Stop()
 
-	// wait connection close or interrupt
 	for {
 		select {
 		case <-done:
@@ -112,18 +61,9 @@ func (w *WebSocket) Connect(serverPath string, interrupt chan struct{}) error {
 			w.changeState(consts.WebSocketStateDisconnected)
 			return err
 		case <-ticker.C:
-			// heartbeat
-			// err := w.conn.WriteMessage(websocket.TextMessage, []byte{})
-			// if err != nil {
-			// 	w.changeState(WebSocketStateDisconnected)
-			// 	return err
-			// }
 		case <-interrupt:
-			// Cleanly close the connection by sending a close message and then
-			// waiting (with timeout) for the server to close the connection.
 			err := w.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			if err != nil {
-				// We must set state to closed instead of disconnected, even write close message failed.
 				w.changeState(consts.WebSocketStateClosed)
 				return err
 			}
@@ -138,13 +78,11 @@ func (w *WebSocket) Connect(serverPath string, interrupt chan struct{}) error {
 }
 
 func (w *WebSocket) runReceiveMessage(done chan<- struct{}, errChan chan<- error) {
-	// done when main loop exit
 	defer close(done)
 	defer close(errChan)
 	for {
 		_, message, err := w.conn.ReadMessage()
 		if err != nil {
-			// send error and exit
 			errChan <- err
 			return
 		}
@@ -159,7 +97,7 @@ func (w *WebSocket) runReceiveMessage(done chan<- struct{}, errChan chan<- error
 
 func DecodeWebSocketEvent(message []byte) (interface{}, error) {
 	var err error
-	event1 := &Event{}
+	event1 := &events.Event{}
 	err = json.Unmarshal(message, event1)
 	if err != nil {
 		return event1, err
@@ -167,17 +105,17 @@ func DecodeWebSocketEvent(message []byte) (interface{}, error) {
 	var event interface{}
 	switch event1.Type {
 	case models.EventTypeNewMessage:
-		event = &NewMessageEvent{}
+		event = &events.NewMessageEvent{}
 	case models.EventTypeNewFriendRequest:
-		event = &NewFriendRequestEvent{}
+		event = &events.NewFriendRequestEvent{}
 	case models.EventTypeWereDeleted:
-		event = &WereDeletedEvent{}
+		event = &events.WereDeletedEvent{}
 	case models.EventTypeFriendAccepted:
-		event = &FriendAcceptedEvent{}
+		event = &events.FriendAcceptedEvent{}
 	case models.EventTypeTimerUpdated:
-		event = &TimerUpdatedEvent{}
+		event = &events.TimerUpdatedEvent{}
 	default:
-		return event1, &InvalidEventTypeError{event1.Type}
+		return event1, &models.InvalidEventTypeError{event1.Type}
 	}
 	err = json.Unmarshal(message, event)
 	if err != nil {

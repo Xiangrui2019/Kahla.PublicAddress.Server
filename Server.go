@@ -3,6 +3,7 @@ package main
 import (
 	"Kahla.PublicAddress.Server/consts"
 	"Kahla.PublicAddress.Server/cryptojs"
+	"Kahla.PublicAddress.Server/events"
 	"Kahla.PublicAddress.Server/kahla"
 	"Kahla.PublicAddress.Server/models"
 	"fmt"
@@ -139,7 +140,7 @@ func (this *PublicAddressServer) StartEventListener(interrupt <-chan struct{}, d
 			return
 		case i := <-this.webSocket.Event:
 			switch v := i.(type) {
-			case *kahla.NewMessageEvent:
+			case *events.NewMessageEvent:
 				content, err := cryptojs.AesDecrypt(v.Content, v.AesKey)
 				if err != nil {
 					log.Println(err)
@@ -150,8 +151,10 @@ func (this *PublicAddressServer) StartEventListener(interrupt <-chan struct{}, d
 						if err != nil {
 							log.Println(err)
 						}
-						fmt.Println(v.Type)
+
 						if v.Sender.NickName != this.PublicAddressName {
+							content = ProcessMessage(content)
+
 							_, err = http.PostForm(this.callbackURL + this.MessageCallbackEndpoint, url.Values{
 								"Username": {v.Sender.NickName},
 								"ConversationId": {strconv.Itoa(response.ConversationID)},
@@ -165,9 +168,9 @@ func (this *PublicAddressServer) StartEventListener(interrupt <-chan struct{}, d
 						}
 					}
 				}
-			case *kahla.NewFriendRequestEvent:
+			case *events.NewFriendRequestEvent:
 				this.AcceptFriendRequest()
-			case *kahla.WereDeletedEvent:
+			case *events.WereDeletedEvent:
 				this.UpdateConversations()
 			default:
 				log.Println("invalid event type")
