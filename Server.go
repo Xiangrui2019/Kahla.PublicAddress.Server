@@ -1,19 +1,20 @@
 package main
 
 import (
-	"Kahla.PublicAddress.Server/consts"
-	"Kahla.PublicAddress.Server/cryptojs"
-	"Kahla.PublicAddress.Server/events"
-	"Kahla.PublicAddress.Server/kahla"
-	"Kahla.PublicAddress.Server/models"
 	"fmt"
-	"github.com/avast/retry-go"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"sync"
+
+	"Kahla.PublicAddress.Server/consts"
+	"Kahla.PublicAddress.Server/cryptojs"
+	"Kahla.PublicAddress.Server/events"
+	"Kahla.PublicAddress.Server/kahla"
+	"Kahla.PublicAddress.Server/models"
+	"github.com/avast/retry-go"
+	"github.com/gin-gonic/gin"
 )
 
 type PublicAddressServer struct {
@@ -187,6 +188,8 @@ func (this *PublicAddressServer) CreateHTTPAPIServer() {
 
 	router.GET("/send", func(c *gin.Context) {
 		token := c.Query("token")
+		content := c.Query("content")
+
 		if token == "" {
 			c.JSON(401, gin.H{
 				"code":    consts.ResponseCodeNoAccessToken,
@@ -195,7 +198,6 @@ func (this *PublicAddressServer) CreateHTTPAPIServer() {
 			return
 		}
 
-		content := c.Query("content")
 		if content == "" {
 			c.JSON(400, gin.H{
 				"code":    consts.ResponseCodeNoContent,
@@ -259,7 +261,7 @@ func (this *PublicAddressServer) acceptFriendRequest() error {
 
 	var err1 error
 	for _, v := range response.Items {
-		if ! v.Completed {
+		if !v.Completed {
 			_, err := this.client.Friendship.CompleteRequest(v.ID, true)
 			if err != nil {
 				if err1 == nil {
@@ -332,9 +334,9 @@ func (this *PublicAddressServer) sendNewTokens() error {
 		if v.Token == "" {
 			v.Token = randomString(32)
 
-			_, err := http.PostForm(this.callbackURL + this.TokenStorageEndpoint, url.Values{
+			_, err := http.PostForm(this.callbackURL+this.TokenStorageEndpoint, url.Values{
 				"ConversationId": {strconv.Itoa(v.ConversationID)},
-				"Token": {v.Token},
+				"Token":          {v.Token},
 			})
 
 			err = this.SendMessage(v.ConversationID, v.Token, v.AesKey)
