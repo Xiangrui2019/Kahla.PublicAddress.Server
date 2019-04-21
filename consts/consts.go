@@ -1,7 +1,7 @@
 package consts
 
 const (
-	KahlaServer = "https://server.kahla.app"
+	KahlaServer    = "https://server.kahla.app"
 	ResponseCodeOK = iota
 	ResponseCodeNoAccessToken
 	ResponseCodeNoContent

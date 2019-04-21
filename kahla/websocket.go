@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-
 type WebSocket struct {
 	conn         *websocket.Conn
 	Event        chan interface{}
@@ -45,7 +44,7 @@ func (w *WebSocket) Connect(serverPath string, interrupt chan struct{}) error {
 
 	done := make(chan struct{})
 	errChan := make(chan error)
-	go w.runReceiveMessage(done, errChan)
+	go w.StartReceiveMessage(done, errChan)
 
 	ticker := time.NewTicker(45 * time.Second)
 	defer ticker.Stop()
@@ -53,11 +52,9 @@ func (w *WebSocket) Connect(serverPath string, interrupt chan struct{}) error {
 	for {
 		select {
 		case <-done:
-			// connection closed
 			w.changeState(consts.WebSocketStateDisconnected)
 			return nil
 		case err := <-errChan:
-			// error
 			w.changeState(consts.WebSocketStateDisconnected)
 			return err
 		case <-ticker.C:
@@ -77,7 +74,7 @@ func (w *WebSocket) Connect(serverPath string, interrupt chan struct{}) error {
 	}
 }
 
-func (w *WebSocket) runReceiveMessage(done chan<- struct{}, errChan chan<- error) {
+func (w *WebSocket) StartReceiveMessage(done chan<- struct{}, errChan chan<- error) {
 	defer close(done)
 	defer close(errChan)
 	for {

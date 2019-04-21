@@ -27,8 +27,10 @@ func main() {
 		<-interrupt
 		close(interrupt2)
 	}()
-	notifyServer := NewPublicAddressServer(config.PublicAddressName, config.Email, config.Password, config.Port, config.CallbackURL, config.TokenStorageEndpoint, config.MessageCallbackEndpoint)
-	err = notifyServer.Run(interrupt2)
+
+	server := NewPublicAddressServer(config.PublicAddressName, config.Email, config.Password, config.Port, config.CallbackURL, config.TokenStorageEndpoint, config.MessageCallbackEndpoint)
+	err = server.Run(interrupt2)
+
 	if err != nil {
 		panic(err)
 	}

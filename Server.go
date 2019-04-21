@@ -62,6 +62,7 @@ func (this *PublicAddressServer) Login() error {
 		}
 		return nil
 	})
+
 	if err != nil {
 		return err
 	}
@@ -92,7 +93,6 @@ func (this *PublicAddressServer) ConnectToPusher(interrupt chan struct{}) error 
 		go func() {
 			state := <-this.webSocket.StateChanged
 			if state == consts.WebSocketStateConnected {
-				fmt.Println("Connection To Pusher Susscess!")
 			}
 		}()
 		err := this.webSocket.Connect(this.serverPath, interrupt)
@@ -155,11 +155,11 @@ func (this *PublicAddressServer) StartEventListener(interrupt <-chan struct{}, d
 						if v.Sender.NickName != this.PublicAddressName {
 							content = ProcessMessage(content)
 
-							_, err = http.PostForm(this.callbackURL + this.MessageCallbackEndpoint, url.Values{
-								"Username": {v.Sender.NickName},
+							_, err = http.PostForm(this.callbackURL+this.MessageCallbackEndpoint, url.Values{
+								"Username":       {v.Sender.NickName},
 								"ConversationId": {strconv.Itoa(response.ConversationID)},
-								"Message": {content},
-								"Token": {response.Token},
+								"Message":        {content},
+								"Token":          {response.Token},
 							})
 
 							if err != nil {
@@ -172,8 +172,8 @@ func (this *PublicAddressServer) StartEventListener(interrupt <-chan struct{}, d
 				this.AcceptFriendRequest()
 			case *events.WereDeletedEvent:
 				this.UpdateConversations()
+			case events.TimerUpdatedEvent:
 			default:
-				log.Println("invalid event type")
 			}
 		}
 	}
@@ -181,6 +181,7 @@ func (this *PublicAddressServer) StartEventListener(interrupt <-chan struct{}, d
 
 func (this *PublicAddressServer) CreateHTTPAPIServer() {
 	router := gin.Default()
+
 	router.GET("/send", func(c *gin.Context) {
 		token := c.Query("token")
 		if token == "" {
@@ -221,6 +222,7 @@ func (this *PublicAddressServer) CreateHTTPAPIServer() {
 			"msg":  "OK",
 		})
 	})
+
 	this.httpServer = &http.Server{
 		Addr:    fmt.Sprintf(":%d", this.port),
 		Handler: router,
@@ -233,7 +235,7 @@ func (this *PublicAddressServer) StartHTTPAPIServer(interrupt <-chan struct{}, d
 		<-interrupt
 		err := this.httpServer.Close()
 		if err != nil {
-			log.Println("Server close error.", err)
+			log.Println(err)
 		}
 	}()
 	err := this.httpServer.ListenAndServe()
@@ -257,13 +259,11 @@ func (this *PublicAddressServer) acceptFriendRequest() error {
 		if ! v.Completed {
 			_, err := this.client.Friendship.CompleteRequest(v.ID, true)
 			if err != nil {
-				log.Println("Complete friend request failed:", err)
 				if err1 == nil {
 					err1 = err
 				}
 				continue
 			}
-			log.Println("Complete friend request:", v.Creator.NickName)
 			this.UpdateConversations()
 		}
 	}
@@ -281,7 +281,6 @@ func (this *PublicAddressServer) AcceptFriendRequest() {
 			<-this.friendRequestChan
 		}()
 	default:
-		log.Println("Friend request task exists. Ignore.")
 	}
 }
 
@@ -321,7 +320,6 @@ func (this *PublicAddressServer) UpdateConversations() {
 			<-this.updateConversationsChan
 		}()
 	default:
-		log.Println("Update conversation task exists. Ignore.")
 	}
 }
 
@@ -354,7 +352,6 @@ func (this *PublicAddressServer) SendNewTokens() {
 			<-this.sendNewTokensChan
 		}()
 	default:
-		log.Println("Send new tokens task exists. Ignore.")
 	}
 }
 
