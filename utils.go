@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -25,6 +26,28 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-func ProcessMessage(message string) string {
-	return message
+func ProcessMessage(message string) (string, string) {
+	data := ""
+
+	if strings.Contains(message, "[img]") {
+		data = strings.Split(message, "]")[1]
+		return data, "IMAGE"
+	}
+
+	if strings.Contains(message, "[video]") {
+		data = strings.Split(message, "]")[1]
+		return data, "VIDEO"
+	}
+
+	if strings.Contains(message, "[audio]") {
+		data = strings.Split(message, "]")[1]
+		return data, "AUDIO"
+	}
+
+	if strings.Contains(message, "[file]") {
+		data = strings.Split(message, "]")[1]
+		return data, "FILE"
+	}
+
+	return message, "TEXT"
 }

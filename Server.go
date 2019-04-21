@@ -153,13 +153,14 @@ func (this *PublicAddressServer) StartEventListener(interrupt <-chan struct{}, d
 						}
 
 						if v.Sender.NickName != this.PublicAddressName {
-							content = ProcessMessage(content)
+							content, messagetype := ProcessMessage(content)
 
 							_, err = http.PostForm(this.callbackURL+this.MessageCallbackEndpoint, url.Values{
 								"Username":       {v.Sender.NickName},
 								"ConversationId": {strconv.Itoa(response.ConversationID)},
 								"Message":        {content},
 								"Token":          {response.Token},
+								"MessageType":    {messagetype},
 							})
 
 							if err != nil {
@@ -174,12 +175,14 @@ func (this *PublicAddressServer) StartEventListener(interrupt <-chan struct{}, d
 				this.UpdateConversations()
 			case events.TimerUpdatedEvent:
 			default:
+				panic("Error!")
 			}
 		}
 	}
 }
 
 func (this *PublicAddressServer) CreateHTTPAPIServer() {
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 
 	router.GET("/send", func(c *gin.Context) {
@@ -328,7 +331,13 @@ func (this *PublicAddressServer) sendNewTokens() error {
 	for _, v := range *this.conversations {
 		if v.Token == "" {
 			v.Token = randomString(32)
-			err := this.SendMessage(v.ConversationID, v.Token, v.AesKey)
+
+			_, err := http.PostForm(this.callbackURL + this.TokenStorageEndpoint, url.Values{
+				"ConversationId": {strconv.Itoa(v.ConversationID)},
+				"Token": {v.Token},
+			})
+
+			err = this.SendMessage(v.ConversationID, v.Token, v.AesKey)
 			if err != nil {
 				if err1 == nil {
 					err1 = err
