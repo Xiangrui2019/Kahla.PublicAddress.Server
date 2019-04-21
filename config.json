@@ -1,0 +1,9 @@
+{
+  "PublicAddressName": "dx",
+  "Email": "dx@xiangruikong.com",
+  "Password": "Xr111900",
+  "Port": 8080,
+  "CallbackURL": "http://localhost:5000",
+  "TokenStorageEndpoint": "/Values/Token",
+  "MessageCallbackEndpoint": "/Values/Callback"
+}
