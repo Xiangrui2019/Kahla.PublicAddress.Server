@@ -1,2 +1,3 @@
 # Kahla.PublicAddress.Server
-Kahla公众号.
+
+Kahla Public Address is Extend From Ganlvtech go-kahla-notify.
