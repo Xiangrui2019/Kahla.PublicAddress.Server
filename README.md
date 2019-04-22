@@ -23,7 +23,7 @@ To configure this server, you must configure config.json in the server startup d
   "PublicAddressName": "<Public account name>",
   "Email": "<Public number email>",
   "Password": "<Public number admin login Password>",
-  "Port": 8080, // Public number api port
+  "Port": <Public number api port>, 
   "CallbackURL": "<Public number callback server address>",
   "TokenStorageEndpoint": "<Public number Token Storage On Callback Server Endpoint>",
   "MessageCallbackEndpoint": "<Public number Message Callback On Callback Server Endpoint>"
