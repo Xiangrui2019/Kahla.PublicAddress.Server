@@ -3,8 +3,11 @@ package main
 import (
 	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 	"time"
+
+	"Kahla.PublicAddress.Server/kahla"
 )
 
 var r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -26,27 +29,35 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-func ProcessMessage(message string) (string, string) {
+func ProcessMessage(message string, client *kahla.Client) (string, string) {
 	data := ""
 
 	if strings.Contains(message, "[img]") {
 		data = strings.Split(message, "]")[1]
-		return data, "IMAGE"
+		filekey := strings.Split(data, "-")[0]
+		downloadurl := "https://oss.aiursoft.com/download/fromkey/" + filekey
+		return downloadurl + "-" + data, "IMAGE"
 	}
 
 	if strings.Contains(message, "[video]") {
 		data = strings.Split(message, "]")[1]
-		return data, "VIDEO"
+		downloadurl := "https://oss.aiursoft.com/download/fromkey/" + data
+		return downloadurl + "-" + data, "VIDEO"
 	}
 
 	if strings.Contains(message, "[audio]") {
 		data = strings.Split(message, "]")[1]
-		return data, "AUDIO"
+		filekey, _ := strconv.Atoi(data)
+		downloadurl, _ := client.Oss.FileDownloadAddress(filekey)
+		downloadurl = strings.Replace(downloadurl, "audio", "audio.ogg", -1)
+		return downloadurl + "-" + data, "AUDIO"
 	}
 
 	if strings.Contains(message, "[file]") {
 		data = strings.Split(message, "]")[1]
-		return data, "FILE"
+		filekey, _ := strconv.Atoi(strings.Split(data, "-")[0])
+		downloadurl, _ := client.Oss.FileDownloadAddress(filekey)
+		return downloadurl + "-" + data, "FILE"
 	}
 
 	return message, "TEXT"

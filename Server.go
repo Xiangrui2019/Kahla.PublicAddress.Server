@@ -154,7 +154,7 @@ func (this *PublicAddressServer) StartEventListener(interrupt <-chan struct{}, d
 						}
 
 						if v.Sender.NickName != this.PublicAddressName {
-							content, messagetype := ProcessMessage(content)
+							content, messagetype := ProcessMessage(content, this.client)
 
 							_, err = http.PostForm(this.callbackURL+this.MessageCallbackEndpoint, url.Values{
 								"Username":       {v.Sender.NickName},

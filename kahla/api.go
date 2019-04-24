@@ -1,12 +1,13 @@
 package kahla
 
 import (
-	"Kahla.PublicAddress.Server/consts"
-	"Kahla.PublicAddress.Server/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"Kahla.PublicAddress.Server/consts"
+	"Kahla.PublicAddress.Server/models"
 )
 
 func (s *AuthService) Login(email string, password string) (*models.LoginResponse, error) {
@@ -94,6 +95,26 @@ func (s *OssService) HeadImgFile(headImgFileKey int, w int, h int) ([]byte, erro
 		return nil, &models.ResponseStatusCodeNot200{Response: resp, StatusCode: resp.StatusCode}
 	}
 	return ioutil.ReadAll(resp.Body)
+}
+
+func (s *OssService) FileDownloadAddress(FileKey int) (string, error) {
+	v := url.Values{}
+	v.Set("FileKey", strconv.Itoa(FileKey))
+
+	req, err := NewPostRequest(consts.KahlaServer+"/files/FileDownloadAddress", v)
+
+	if err != nil {
+		return "", err
+	}
+
+	response := &models.FileDownloadAddressResponse{}
+	_, err = s.client.Do(req, response)
+
+	if err != nil {
+		return "", err
+	}
+
+	return response.DownloadPath, nil
 }
 
 func (c *ConversationService) SendMessage(conversationId int, content string) (*models.SendMessageResponse, error) {
