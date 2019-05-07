@@ -2,8 +2,6 @@
 
 # Kahla.PublicAddress.Server
 
-Kahla Public Address is Extend From Ganlvtech go-kahla-notify.
-
 ## How to Use
 
 Before starting the server, you need to configure config.json.
