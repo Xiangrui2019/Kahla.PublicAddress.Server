@@ -52,6 +52,7 @@ func NewPublicAddressServer(PublicAddressName string, email string, password str
 	s.sendNewTokensChan = make(chan struct{}, 1)
 	conversations := make(models.Conversations, 0)
 	s.conversations = &conversations
+	log.Println("卡拉公众号服务器初始化成功....")
 	return s
 }
 
@@ -65,10 +66,14 @@ func (this *PublicAddressServer) Login() error {
 	})
 
 	if err != nil {
+		log.Println("登录出现错误....")
 		return err
 	}
 
+	log.Println("成功登录卡拉服务器, 即将开始启动监听器....")
+
 	this.UpdateConversations()
+	log.Println("更新会话成功....")
 	return nil
 }
 
@@ -83,8 +88,11 @@ func (this *PublicAddressServer) InitPusher() error {
 	})
 
 	if err != nil {
+		log.Println("初始化推送器失败....")
 		return err
 	}
+
+	log.Println("初始化推送成功.....")
 
 	return nil
 }
@@ -108,8 +116,11 @@ func (this *PublicAddressServer) ConnectToPusher(interrupt chan struct{}) error 
 		return nil
 	})
 	if err != nil {
+		log.Println("连接推送器失败....")
 		return err
 	}
+
+	log.Println("连接推送器成功.....")
 	return nil
 }
 
@@ -129,6 +140,8 @@ func (this *PublicAddressServer) StartListener(interrupt chan struct{}, done cha
 			continue
 		}
 
+		log.Println("成功开启了事件监听器.....")
+
 		break
 	}
 }
@@ -146,6 +159,8 @@ func (this *PublicAddressServer) StartEventListener(interrupt <-chan struct{}, d
 				if err != nil {
 					log.Println(err)
 				} else {
+					log.Println("消息解密成功.....")
+					log.Printf("卡拉服务器发来了一条消息: %s .....", content)
 					if true {
 						response, err := this.conversations.GetByConversationID(v.ConversationID)
 
@@ -155,6 +170,8 @@ func (this *PublicAddressServer) StartEventListener(interrupt <-chan struct{}, d
 
 						if v.Sender.NickName != this.PublicAddressName {
 							content, messagetype := ProcessMessage(content, this.client)
+							log.Println("消息处理完成...")
+							log.Println("消息数据是: " + content)
 
 							_, err = http.PostForm(this.callbackURL+this.MessageCallbackEndpoint, url.Values{
 								"Username":       {v.Sender.NickName},
@@ -167,16 +184,25 @@ func (this *PublicAddressServer) StartEventListener(interrupt <-chan struct{}, d
 							if err != nil {
 								log.Println(err)
 							}
+
+							log.Println("回调到服务器成功: " + this.callbackURL)
+							log.Println("请检查服务器状态.....")
 						}
 					}
 				}
 			case *events.NewFriendRequestEvent:
+				log.Println("有一个好友请求...")
 				this.AcceptFriendRequest()
+				log.Println("我们已经同意了这个好友请求....")
+				log.Println("他已经成功加入公众号了...")
 			case *events.WereDeletedEvent:
+				log.Println("有一个人已经删除了您, 您现在已经不是他的好友了....")
 				this.UpdateConversations()
+				log.Println("您已经成功的从公众号数据中删除了这个好友....")
 			case events.TimerUpdatedEvent:
+				log.Println("消息自毁事件更新啦....")
 			default:
-				panic("Error!")
+				log.Println("出现了错误 .....")
 			}
 		}
 	}
@@ -189,6 +215,7 @@ func (this *PublicAddressServer) CreateHTTPAPIServer() {
 	router.GET("/send", func(c *gin.Context) {
 		token := c.Query("token")
 		content := c.Query("content")
+
 
 		if token == "" {
 			c.JSON(401, gin.H{
@@ -243,13 +270,16 @@ func (this *PublicAddressServer) StartHTTPAPIServer(interrupt <-chan struct{}, d
 			log.Println(err)
 		}
 	}()
+	log.Println("HTTP API 服务器启动成功....")
 	err := this.httpServer.ListenAndServe()
+
 	if err != nil {
 		if err == http.ErrServerClosed {
 			log.Println("Server closed under request.")
 		} else {
 			log.Println("Server closed unexpect.", err)
 		}
+		log.Println(err)
 	}
 }
 
@@ -339,7 +369,7 @@ func (this *PublicAddressServer) sendNewTokens() error {
 				"Token":          {v.Token},
 			})
 
-			err = this.SendMessage(v.ConversationID, v.Token, v.AesKey)
+			err = this.SendMessage(v.ConversationID, "您的Token是: " + v.Token, v.AesKey)
 			if err != nil {
 				if err1 == nil {
 					err1 = err
@@ -426,6 +456,7 @@ func (this *PublicAddressServer) Run(interrupt <-chan struct{}) error {
 		this.StartHTTPAPIServer(interrupt3, done3)
 		wg.Done()
 	}()
+	log.Println("卡拉公众号服务器启动成功........")
 	wg.Wait()
 	return nil
 }
