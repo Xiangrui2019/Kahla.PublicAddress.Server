@@ -369,7 +369,7 @@ func (this *PublicAddressServer) sendNewTokens() error {
 				"Token":          {v.Token},
 			})
 
-			err = this.SendMessage(v.ConversationID, "您的Token是: " + v.Token, v.AesKey)
+			err = this.SendMessage(v.ConversationID, "您被服务器新分配的令牌是: " + v.Token, v.AesKey)
 			if err != nil {
 				if err1 == nil {
 					err1 = err
